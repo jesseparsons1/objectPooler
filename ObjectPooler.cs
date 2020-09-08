@@ -1,38 +1,40 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 public class ObjectPooler : MonoBehaviour
 {
-    public static List<T> PoolPrefabs<T>(T prefabToPool, int amount, Transform poolParent = null) where T : Component
+    public static List<T> PoolPrefabs<T>(T prefab, int amount, Transform poolParent = null) where T : Component
     {
+        //List of objects in the pool
         List<T> pool = new List<T>();
+
         for (int i = 0; i < amount; i++)
         {
-            GameObject newGameObject = Instantiate(prefabToPool.gameObject, poolParent);
+            //Create new instance of object and set inactive
+            GameObject newInstance = Instantiate(prefab.gameObject, poolParent);
+            newInstance.SetActive(false);
 
-            T newComponent = newGameObject.GetComponent<T>();
-
-            newGameObject.SetActive(false);
-
+            //Get component of type T and add to pool
+            T newComponent = newInstance.GetComponent<T>();
             pool.Add(newComponent);
         }
 
         return pool;
     }
 
-    public static List<T> AddToPool<T>(List<T> pool, T prefabToPool, int amount, Transform poolParent = null) where T : Component
+    public static List<T> AddToPool<T>(List<T> pool, T prefab, int amount, Transform poolParent = null) where T : Component
     {
+        //List of objects added to the pool
         List<T> prefabsAdded = new List<T>();
 
         for (int i = 0; i < amount; i++)
         {
-            GameObject newGameObject = Instantiate(prefabToPool.gameObject, poolParent);
+            //Create new instance of object and set inactive
+            GameObject newInstance = Instantiate(prefab.gameObject, poolParent);
+            newInstance.SetActive(false);
 
-            T newComponent = newGameObject.GetComponent<T>();
-
-            newGameObject.gameObject.SetActive(false);
-
+            //Get component of type T and add to pool
+            T newComponent = newInstance.GetComponent<T>();
             pool.Add(newComponent);
             prefabsAdded.Add(newComponent);
         }
@@ -40,26 +42,22 @@ public class ObjectPooler : MonoBehaviour
         return prefabsAdded;
     }
 
-    public static T GetFromPool<T>(List<T> pool) where T : Component
+    public static T GetFromPool<T>(List<T> pool, T extraPrefab, bool setActive = true, Transform poolParent = null) where T : Component
     {
-        if (pool.Count > 0)
+        //Search through existing objects in pool
+        foreach (T pooledObject in pool)
         {
-            foreach (T pooledObject in pool)
+            //If one is inactive, return it, and set active according to argument
+            if (!pooledObject.gameObject.activeInHierarchy)
             {
-                if (!pooledObject.gameObject.activeInHierarchy)
-                {
-                    return pooledObject;
-                }
+                pooledObject.gameObject.SetActive(setActive);
+                return pooledObject;
             }
-
-            List<T> newPooledObject = AddToPool(pool, pool[0], 1, pool[0].transform.parent);
-
-            return newPooledObject[0];
         }
-        else
-        {
-            Debug.LogWarning("Pool is empty and ObjectPooler doesn't know what to add to it");
-            return null;
-        }
+
+        //Otherwise add a new object to the pool
+        List<T> prefabsAdded = AddToPool(pool, extraPrefab, 1, poolParent);
+
+        return prefabsAdded[0];
     }
 }
